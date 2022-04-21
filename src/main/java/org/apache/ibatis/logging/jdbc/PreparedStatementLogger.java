@@ -33,7 +33,7 @@ import org.apache.ibatis.reflection.ExceptionUtil;
  *
  */
 public final class PreparedStatementLogger extends BaseJdbcLogger implements InvocationHandler {
-
+  // 还是一样 这里是被代理的实际对象
   private final PreparedStatement statement;
 
   private PreparedStatementLogger(PreparedStatement stmt, Log statementLog, int queryStack) {
@@ -47,13 +47,17 @@ public final class PreparedStatementLogger extends BaseJdbcLogger implements Inv
       if (Object.class.equals(method.getDeclaringClass())) {
         return method.invoke(this, params);
       }
+      // 还记得那几个容器吗 用来存储各种方法的  现在他来了
       if (EXECUTE_METHODS.contains(method.getName())) {
         if (isDebugEnabled()) {
+          // 开启DEBUG 我就把参数打印出来
           debug("Parameters: " + getParameterValueString(), true);
         }
         clearColumnInfo();
         if ("executeQuery".equals(method.getName())) {
+          // 获取到一个resultset
           ResultSet rs = (ResultSet) method.invoke(statement, params);
+          // 把resultset 也代理了来返回
           return rs == null ? null : ResultSetLogger.newInstance(rs, statementLog, queryStack);
         } else {
           return method.invoke(statement, params);

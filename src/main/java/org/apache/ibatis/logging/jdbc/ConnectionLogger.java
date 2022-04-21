@@ -33,7 +33,7 @@ import org.apache.ibatis.reflection.ExceptionUtil;
  *
  */
 public final class ConnectionLogger extends BaseJdbcLogger implements InvocationHandler {
-
+  //他要代理的就是这connection
   private final Connection connection;
 
   private ConnectionLogger(Connection conn, Log statementLog, int queryStack) {
@@ -50,14 +50,20 @@ public final class ConnectionLogger extends BaseJdbcLogger implements Invocation
       }
       if ("prepareStatement".equals(method.getName()) || "prepareCall".equals(method.getName())) {
         if (isDebugEnabled()) {
+          // 原来开启debug 就会打出日志是在这里呀
           debug(" Preparing: " + removeExtraWhitespace((String) params[0]), true);
         }
+        // 通过connection创建了PreparedStatement
         PreparedStatement stmt = (PreparedStatement) method.invoke(connection, params);
+        // 把stmt 传过去给PreparedStatementLogger的newInstance 创建了一个stmt的代理返回
         stmt = PreparedStatementLogger.newInstance(stmt, statementLog, queryStack);
         return stmt;
-      } else if ("createStatement".equals(method.getName())) {
+      } else if ("createStatement".equals(method.getName())) {//如果是创建Statement
+        // 拿到连接去创建一个Statement
         Statement stmt = (Statement) method.invoke(connection, params);
+        // 把Statement传进StatementLogger 获取Statement的代理对象来返回
         stmt = StatementLogger.newInstance(stmt, statementLog, queryStack);
+        // 注意这里返回的不是真实stmt 而是代理过后的stmt
         return stmt;
       } else {
         return method.invoke(connection, params);

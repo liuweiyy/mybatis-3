@@ -69,6 +69,7 @@ public final class ResultSetLogger extends BaseJdbcLogger implements InvocationH
       Object o = method.invoke(rs, params);
       if ("next".equals(method.getName())) {
         if ((Boolean) o) {
+          // 只要还有下一条next,就记数加1  rows++;
           rows++;
           if (isTraceEnabled()) {
             ResultSetMetaData rsmd = rs.getMetaData();
@@ -80,6 +81,7 @@ public final class ResultSetLogger extends BaseJdbcLogger implements InvocationH
             printColumnValues(columnCount);
           }
         } else {
+          // 开启debug情况下 打印出总数计数
           debug("     Total: " + rows, false);
         }
       }

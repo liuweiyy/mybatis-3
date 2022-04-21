@@ -28,9 +28,11 @@ public final class LogFactory {
    */
   public static final String MARKER = "MYBATIS";
 
+  // 定义logConstructor 他继承于Constructor
   private static Constructor<? extends Log> logConstructor;
 
   static {
+    // 加载顺序在这里.初始化时必定按照这个顺序执行,可以发现下面这一排排就是我们刚刚看到的各个适配器
     tryImplementation(LogFactory::useSlf4jLogging);
     tryImplementation(LogFactory::useCommonsLogging);
     tryImplementation(LogFactory::useLog4J2Logging);
@@ -41,14 +43,18 @@ public final class LogFactory {
 
   private LogFactory() {
     // disable construction
+    // 在这里私有化构造器 就不能通过new来创建实例了
   }
 
   public static Log getLog(Class<?> clazz) {
+    // 第一步.如果我们需要一个Log 那么我们就调用这个方法,传入需要的类即可
     return getLog(clazz.getName());
   }
 
   public static Log getLog(String logger) {
     try {
+      // 第二步.根据类的名字获取Log实现.如果获取不到会报错
+      // 这个logConstructor就是我们上面的,他内部在初始化时已经通过static的静态代码块进行了处理,所以会处理为对应的日志实现,
       return logConstructor.newInstance(logger);
     } catch (Throwable t) {
       throw new LogException("Error creating logger for logger " + logger + ".  Cause: " + t, t);

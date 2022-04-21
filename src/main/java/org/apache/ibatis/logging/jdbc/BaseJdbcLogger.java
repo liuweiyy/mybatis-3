@@ -39,20 +39,22 @@ import org.apache.ibatis.reflection.ArrayUtil;
  * @author Eduardo Macarron
  */
 public abstract class BaseJdbcLogger {
-
+  // set方法容器
   protected static final Set<String> SET_METHODS;
+  // 执行方法容器
   protected static final Set<String> EXECUTE_METHODS = new HashSet<>();
-
+  // 列的键值对
   private final Map<Object, Object> columnMap = new HashMap<>();
-
+  // 所有key的列表
   private final List<Object> columnNames = new ArrayList<>();
+  // 所有value的列表
   private final List<Object> columnValues = new ArrayList<>();
-
+  // Log实现
   protected final Log statementLog;
   protected final int queryStack;
 
   /*
-   * Default constructor
+   * 默认的构造
    */
   public BaseJdbcLogger(Log log, int queryStack) {
     this.statementLog = log;
@@ -64,6 +66,7 @@ public abstract class BaseJdbcLogger {
   }
 
   static {
+    // 初始化 就加载两个容器 这两个容器用来装所有的预编译set参数的方法和所有执行方法
     SET_METHODS = Arrays.stream(PreparedStatement.class.getDeclaredMethods())
             .filter(method -> method.getName().startsWith("set"))
             .filter(method -> method.getParameterCount() > 1)
