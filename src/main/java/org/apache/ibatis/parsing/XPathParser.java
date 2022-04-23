@@ -230,17 +230,25 @@ public class XPathParser {
   private Document createDocument(InputSource inputSource) {
     // important: this must only be called AFTER common constructor
     try {
+      // 这个是DOM解析方式
       DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
       factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
       factory.setValidating(validation);
 
+      // 名称空间
       factory.setNamespaceAware(false);
+      // 忽略注释
       factory.setIgnoringComments(true);
+      // 忽略空白
       factory.setIgnoringElementContentWhitespace(false);
+      // 把 CDATA 节点转换为 Text 节点
       factory.setCoalescing(false);
+      // 扩展实体引用
       factory.setExpandEntityReferences(true);
 
       DocumentBuilder builder = factory.newDocumentBuilder();
+      // 需要注意的就是定义了EntityResolver(XMLMapperEntityResolver)，这样不用联网去获取DTD，
+      // 将DTD放在org\apache\ibatis\builder\xml\mybatis-3-config.dtd,来达到验证xml合法性的目的
       builder.setEntityResolver(entityResolver);
       builder.setErrorHandler(new ErrorHandler() {
         @Override
@@ -268,6 +276,7 @@ public class XPathParser {
     this.validation = validation;
     this.entityResolver = entityResolver;
     this.variables = variables;
+    // 共通构造函数，除了把参数都设置到实例变量里面去以外，还初始化了XPath
     XPathFactory factory = XPathFactory.newInstance();
     this.xpath = factory.newXPath();
   }
