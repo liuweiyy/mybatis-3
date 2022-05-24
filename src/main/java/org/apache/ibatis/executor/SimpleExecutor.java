@@ -61,6 +61,8 @@ public class SimpleExecutor extends BaseExecutor {
       // 新建一个StatementHandler
       // 这里看到ResultHandler传入了
       StatementHandler handler = configuration.newStatementHandler(wrapper, ms, parameter, rowBounds, resultHandler, boundSql);
+      // 1、创建 stmt
+      // 2、设置参数
       stmt = prepareStatement(handler, ms.getStatementLog());
       return handler.query(stmt, resultHandler);
     } finally {
@@ -88,6 +90,7 @@ public class SimpleExecutor extends BaseExecutor {
     Connection connection = getConnection(statementLog);
     // 调用StatementHandler.prepare 创建stmt
     stmt = handler.prepare(connection, transaction.getTimeout());
+    // 调用StatementHandler.parameterize
     handler.parameterize(stmt);
     return stmt;
   }

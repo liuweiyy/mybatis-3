@@ -58,10 +58,12 @@ public class ParamNameResolver {
     this.useActualParamName = config.isUseActualParamName();
     final Class<?>[] paramTypes = method.getParameterTypes();
     final Annotation[][] paramAnnotations = method.getParameterAnnotations();
+    // 用一个TreeMap,这样就保证还是按参数的先后顺序
     final SortedMap<Integer, String> map = new TreeMap<>();
     int paramCount = paramAnnotations.length;
     // get names from @Param annotations
     for (int paramIndex = 0; paramIndex < paramCount; paramIndex++) {
+      // 是否RowBounds/ResultHandler类型的参数
       if (isSpecialParameter(paramTypes[paramIndex])) {
         // skip special parameters
         continue;
@@ -70,6 +72,7 @@ public class ParamNameResolver {
       for (Annotation annotation : paramAnnotations[paramIndex]) {
         if (annotation instanceof Param) {
           hasParamAnnotation = true;
+          // 还可以用注解@Param来重命名参数
           name = ((Param) annotation).value();
           break;
         }
@@ -82,11 +85,13 @@ public class ParamNameResolver {
         if (name == null) {
           // use the parameter index as the name ("0", "1", ...)
           // gcode issue #71
+          // 参数名字默认为0,1,2，这就是为什么xml里面可以用#{1}这样的写法来表示参数了
           name = String.valueOf(map.size());
         }
       }
       map.put(paramIndex, name);
     }
+    // 初始化names
     names = Collections.unmodifiableSortedMap(map);
   }
 
@@ -122,19 +127,28 @@ public class ParamNameResolver {
   public Object getNamedParams(Object[] args) {
     final int paramCount = names.size();
     if (args == null || paramCount == 0) {
+      // 如果没参数
       return null;
     } else if (!hasParamAnnotation && paramCount == 1) {
+      // 没有Param这个注解，并且只有一个参数
+      // 单个参数默认不做处理，除非加了Param参数
       Object value = args[names.firstKey()];
       return wrapToMapIfCollection(value, useActualParamName ? names.get(0) : null);
     } else {
+      // 否则，返回一个ParamMap，修改参数名，参数名就是其位置
       final Map<String, Object> param = new ParamMap<>();
       int i = 0;
       for (Map.Entry<Integer, String> entry : names.entrySet()) {
+        // 1.先加一个#{0},#{1},#{2}...参数
         param.put(entry.getValue(), args[entry.getKey()]);
         // add generic param names (param1, param2, ...)
         final String genericParamName = GENERIC_NAME_PREFIX + (i + 1);
         // ensure not to overwrite parameter named with @Param
         if (!names.containsValue(genericParamName)) {
+          // 2.再加一个#{param1},#{param2}...参数
+          // 你可以传递多个参数给一个映射器方法。如果你这样做了,
+          // 默认情况下它们将会以它们在参数列表中的位置来命名,比如:#{param1},#{param2}等。
+          // 如果你想改变参数的名称(只在多参数情况下) ,那么你可以在参数上使用@Param(“paramName”)注解。
           param.put(genericParamName, args[entry.getKey()]);
         }
         i++;
