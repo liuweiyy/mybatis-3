@@ -42,6 +42,7 @@ public class BeanWrapper extends BaseWrapper {
 
   @Override
   public Object get(PropertyTokenizer prop) {
+    // 如果有index(有中括号),说明是集合，那就要解析集合,调用的是BaseWrapper.resolveCollection 和 getCollectionValue
     if (prop.getIndex() != null) {
       Object collection = resolveCollection(prop, object);
       return getCollectionValue(prop, collection);
@@ -159,6 +160,7 @@ public class BeanWrapper extends BaseWrapper {
 
   private Object getBeanProperty(PropertyTokenizer prop, Object object) {
     try {
+      // 得到getter方法，然后调用
       Invoker method = metaClass.getGetInvoker(prop.getName());
       try {
         return method.invoke(object, NO_ARGUMENTS);

@@ -55,11 +55,17 @@ public class Reflector {
 
   private static final MethodHandle isRecordMethodHandle = getIsRecordMethodHandle();
   private final Class<?> type;
+  // getter的属性列表？
   private final String[] readablePropertyNames;
+  // setter的属性列表？
   private final String[] writablePropertyNames;
+  // setter的方法列表
   private final Map<String, Invoker> setMethods = new HashMap<>();
+  // getter的方法列表
   private final Map<String, Invoker> getMethods = new HashMap<>();
+  // setter的类型列表
   private final Map<String, Class<?>> setTypes = new HashMap<>();
+  // getter的类型列表
   private final Map<String, Class<?>> getTypes = new HashMap<>();
   private Constructor<?> defaultConstructor;
 
@@ -67,13 +73,17 @@ public class Reflector {
 
   public Reflector(Class<?> clazz) {
     type = clazz;
+    // 加入构造函数
     addDefaultConstructor(clazz);
     Method[] classMethods = getClassMethods(clazz);
     if (isRecord(type)) {
       addRecordGetMethods(classMethods);
     } else {
+      // 加入getter
       addGetMethods(classMethods);
+      // 加入setter
       addSetMethods(classMethods);
+      // 加入字段
       addFields(clazz);
     }
     readablePropertyNames = getMethods.keySet().toArray(new String[0]);

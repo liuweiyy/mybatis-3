@@ -21,6 +21,8 @@ import java.util.Iterator;
  * @author Clinton Begin
  */
 public class PropertyTokenizer implements Iterator<PropertyTokenizer> {
+  // 例子： person[0].birthdate.year
+  // 以下四个属性分别是person person[0] 0 birthdate.year
   private String name;
   private final String indexedName;
   private String index;
@@ -66,6 +68,7 @@ public class PropertyTokenizer implements Iterator<PropertyTokenizer> {
 
   @Override
   public PropertyTokenizer next() {
+    // 基于children重新生成一个属性分词器
     return new PropertyTokenizer(children);
   }
 

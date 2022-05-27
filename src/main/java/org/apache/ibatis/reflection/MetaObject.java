@@ -110,12 +110,16 @@ public class MetaObject {
   }
 
   public Object getValue(String name) {
+    // 属性分词器
     PropertyTokenizer prop = new PropertyTokenizer(name);
+    // 存在子属性
     if (prop.hasNext()) {
+      // person[0].birthdate.year -> person[0]
       MetaObject metaValue = metaObjectForProperty(prop.getIndexedName());
       if (metaValue == SystemMetaObject.NULL_META_OBJECT) {
         return null;
       } else {
+        // prop.getChildren() -> birthdate.year
         return metaValue.getValue(prop.getChildren());
       }
     } else {
@@ -143,6 +147,7 @@ public class MetaObject {
 
   public MetaObject metaObjectForProperty(String name) {
     Object value = getValue(name);
+    // 继续包装成MetaObject
     return MetaObject.forObject(value, objectFactory, objectWrapperFactory, reflectorFactory);
   }
 
