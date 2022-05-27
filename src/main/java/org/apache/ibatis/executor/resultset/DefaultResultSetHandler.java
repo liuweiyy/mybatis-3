@@ -321,6 +321,7 @@ public class DefaultResultSetHandler implements ResultSetHandler {
   //
 
   public void handleRowValues(ResultSetWrapper rsw, ResultMap resultMap, ResultHandler<?> resultHandler, RowBounds rowBounds, ResultMapping parentMapping) throws SQLException {
+    // 有嵌套结果集映射
     if (resultMap.hasNestedResultMaps()) {
       ensureNoRowBounds();
       checkResultHandler();
@@ -349,10 +350,19 @@ public class DefaultResultSetHandler implements ResultSetHandler {
       throws SQLException {
     DefaultResultContext<Object> resultContext = new DefaultResultContext<>();
     ResultSet resultSet = rsw.getResultSet();
+    /*
+     * 根据分页参数的offset 跳过指定的行，ROwBounds是伪分页
+     */
     skipRows(resultSet, rowBounds);
+    /*
+     * 遍历每一行数据
+     */
     while (shouldProcessMoreRows(resultContext, rowBounds) && !resultSet.isClosed() && resultSet.next()) {
+      // 获取鉴别器ResultMap？ 鉴别器使用很少，忽略
       ResultMap discriminatedResultMap = resolveDiscriminatedResultMap(resultSet, resultMap, null);
+      // 获取一行的记录
       Object rowValue = getRowValue(rsw, discriminatedResultMap, null);
+      // 将结果（rowValue）存储在resultHandler上  resultHandler就是一个list
       storeObject(resultHandler, resultContext, rowValue, parentMapping, resultSet);
     }
   }
@@ -372,12 +382,15 @@ public class DefaultResultSetHandler implements ResultSetHandler {
   }
 
   private boolean shouldProcessMoreRows(ResultContext<?> context, RowBounds rowBounds) {
+    // ResultContext控制行数
     return !context.isStopped() && context.getResultCount() < rowBounds.getLimit();
   }
 
   private void skipRows(ResultSet rs, RowBounds rowBounds) throws SQLException {
+    // 支不支持直接跳到指定的行
     if (rs.getType() != ResultSet.TYPE_FORWARD_ONLY) {
       if (rowBounds.getOffset() != RowBounds.NO_ROW_OFFSET) {
+        // 支持则直接定位到具体行
         rs.absolute(rowBounds.getOffset());
       }
     } else {
@@ -395,13 +408,17 @@ public class DefaultResultSetHandler implements ResultSetHandler {
 
   private Object getRowValue(ResultSetWrapper rsw, ResultMap resultMap, String columnPrefix) throws SQLException {
     final ResultLoaderMap lazyLoader = new ResultLoaderMap();
+    // 创建javaBean对应的实例，就是ResultMap上对应的javaType类型
     Object rowValue = createResultObject(rsw, resultMap, lazyLoader, columnPrefix);
+    // 如果结果无直接的类型处理器，则进行字段映射
     if (rowValue != null && !hasTypeHandlerForResultObject(rsw, resultMap.getType())) {
       final MetaObject metaObject = configuration.newMetaObject(rowValue);
+      // 自动映射默认不开启，官方也不推荐使用，忽略
       boolean foundValues = this.useConstructorMappings;
       if (shouldApplyAutomaticMappings(resultMap, false)) {
         foundValues = applyAutomaticMappings(rsw, resultMap, metaObject, columnPrefix) || foundValues;
       }
+      // 通过MetaObject，进行属性值反射设置
       foundValues = applyPropertyMappings(rsw, resultMap, metaObject, lazyLoader, columnPrefix) || foundValues;
       foundValues = lazyLoader.size() > 0 || foundValues;
       rowValue = foundValues || configuration.isReturnInstanceForEmptyRow() ? rowValue : null;
