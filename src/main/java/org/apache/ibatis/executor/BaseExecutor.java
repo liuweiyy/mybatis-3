@@ -143,29 +143,38 @@ public abstract class BaseExecutor implements Executor {
     if (closed) {
       throw new ExecutorException("Executor was closed.");
     }
+    // 先清局部缓存，再查询.但仅查询堆栈为0，才清。为了处理递归调用
     if (queryStack == 0 && ms.isFlushCacheRequired()) {
       clearLocalCache();
     }
     List<E> list;
     try {
+      // 加一,这样递归调用到上面的时候就不会再清局部缓存了
       queryStack++;
       list = resultHandler == null ? (List<E>) localCache.getObject(key) : null;
       if (list != null) {
+        // 若查到localCache缓存，处理localOutputParameterCache
         handleLocallyCachedOutputParameters(ms, key, parameter, boundSql);
       } else {
+        // 从数据库查
         list = queryFromDatabase(ms, parameter, rowBounds, resultHandler, key, boundSql);
       }
     } finally {
+      // 清空堆栈
       queryStack--;
     }
+    // 回到主查询
     if (queryStack == 0) {
+      // 延迟加载队列中所有元素
       for (DeferredLoad deferredLoad : deferredLoads) {
         deferredLoad.load();
       }
       // issue #601
+      // 清空延迟加载队列
       deferredLoads.clear();
       if (configuration.getLocalCacheScope() == LocalCacheScope.STATEMENT) {
         // issue #482
+        // 如果是STATEMENT，清本地缓存
         clearLocalCache();
       }
     }
@@ -178,12 +187,15 @@ public abstract class BaseExecutor implements Executor {
     return doQueryCursor(ms, parameter, rowBounds, boundSql);
   }
 
+  // 延迟加载，DefaultResultSetHandler.getNestedQueryMappingValue调用
+  // 属于嵌套查询，比较高级
   @Override
   public void deferLoad(MappedStatement ms, MetaObject resultObject, String property, CacheKey key, Class<?> targetType) {
     if (closed) {
       throw new ExecutorException("Executor was closed.");
     }
     DeferredLoad deferredLoad = new DeferredLoad(resultObject, property, key, localCache, configuration, targetType);
+    // 如果能加载，则立刻加载，否则加入到延迟加载队列中
     if (deferredLoad.canLoad()) {
       deferredLoad.load();
     } else {
@@ -320,12 +332,15 @@ public abstract class BaseExecutor implements Executor {
 
   private <E> List<E> queryFromDatabase(MappedStatement ms, Object parameter, RowBounds rowBounds, ResultHandler resultHandler, CacheKey key, BoundSql boundSql) throws SQLException {
     List<E> list;
+    // 先向缓存中放入占位符
     localCache.putObject(key, EXECUTION_PLACEHOLDER);
     try {
       list = doQuery(ms, parameter, rowBounds, resultHandler, boundSql);
     } finally {
+      // 删除占位符
       localCache.removeObject(key);
     }
+    // 填充真正的值
     localCache.putObject(key, list);
     if (ms.getStatementType() == StatementType.CALLABLE) {
       localOutputParameterCache.putObject(key, parameter);
@@ -374,6 +389,7 @@ public abstract class BaseExecutor implements Executor {
     }
 
     public boolean canLoad() {
+      // 缓存中找到，且不为占位符，代表可以加载
       return localCache.getObject(key) != null && localCache.getObject(key) != EXECUTION_PLACEHOLDER;
     }
 
@@ -381,6 +397,7 @@ public abstract class BaseExecutor implements Executor {
       @SuppressWarnings("unchecked")
       // we suppose we get back a List
       List<Object> list = (List<Object>) localCache.getObject(key);
+      // 调用ResultExtractor.extractObjectFromList
       Object value = resultExtractor.extractObjectFromList(list, targetType);
       resultObject.setValue(property, value);
     }
