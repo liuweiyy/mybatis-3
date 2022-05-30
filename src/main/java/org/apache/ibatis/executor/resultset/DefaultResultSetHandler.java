@@ -436,6 +436,7 @@ public class DefaultResultSetHandler implements ResultSetHandler {
     if (rowValue != null) {
       // 之前解析过了，填充复合属性
       final MetaObject metaObject = configuration.newMetaObject(rowValue);
+      // ancestorObjects解决循环引用 设置当前对象
       putAncestor(rowValue, resultMapId);
       // 处理嵌套映射2
       applyNestedResultMappings(rsw, resultMap, metaObject, columnPrefix, combinedKey, false);
@@ -985,6 +986,7 @@ public class DefaultResultSetHandler implements ResultSetHandler {
             Object ancestorObject = ancestorObjects.get(nestedResultMapId);
             if (ancestorObject != null) {
               if (newObject) {
+                // 循环引用:直接填充进去，不再走下面的逻辑
                 linkObjects(metaObject, resultMapping, ancestorObject); // issue #385
               }
               continue;
