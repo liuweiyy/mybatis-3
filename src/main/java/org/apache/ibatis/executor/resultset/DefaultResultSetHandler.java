@@ -645,12 +645,15 @@ public class DefaultResultSetHandler implements ResultSetHandler {
     this.useConstructorMappings = false; // reset previous mapping result
     final List<Class<?>> constructorArgTypes = new ArrayList<>();
     final List<Object> constructorArgs = new ArrayList<>();
+    // 创建空对象
     Object resultObject = createResultObject(rsw, resultMap, constructorArgTypes, constructorArgs, columnPrefix);
     if (resultObject != null && !hasTypeHandlerForResultObject(rsw, resultMap.getType())) {
       final List<ResultMapping> propertyMappings = resultMap.getPropertyResultMappings();
       for (ResultMapping propertyMapping : propertyMappings) {
         // issue gcode #109 && issue #149
+        // 有嵌套子查询并且是懒加载的
         if (propertyMapping.getNestedQueryId() != null && propertyMapping.isLazy()) {
+          // 使用代理(cglib/javaassist)
           resultObject = configuration.getProxyFactory().createProxy(resultObject, lazyLoader, configuration, objectFactory, constructorArgTypes, constructorArgs);
           break;
         }
@@ -660,6 +663,7 @@ public class DefaultResultSetHandler implements ResultSetHandler {
     return resultObject;
   }
 
+  // 创建结果对象
   private Object createResultObject(ResultSetWrapper rsw, ResultMap resultMap, List<Class<?>> constructorArgTypes, List<Object> constructorArgs, String columnPrefix)
       throws SQLException {
     final Class<?> resultType = resultMap.getType();

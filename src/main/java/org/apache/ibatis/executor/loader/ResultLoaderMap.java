@@ -76,6 +76,8 @@ public class ResultLoaderMap {
   }
 
   public boolean load(String property) throws SQLException {
+    // 先移除属性，出现异常也不管
+    // 懒加载只会触发一次
     LoadPair pair = loaderMap.remove(property.toUpperCase(Locale.ENGLISH));
     if (pair != null) {
       pair.load();
@@ -174,6 +176,7 @@ public class ResultLoaderMap {
     public void load() throws SQLException {
       /* These field should not be null unless the loadpair was serialized.
        * Yet in that case this method should not be called. */
+      // 反序列化时会丢失
       if (this.metaResultObject == null) {
         throw new IllegalArgumentException("metaResultObject is null");
       }
@@ -185,6 +188,7 @@ public class ResultLoaderMap {
     }
 
     public void load(final Object userObject) throws SQLException {
+      // 反序列化时会丢失
       if (this.metaResultObject == null || this.resultLoader == null) {
         if (this.mappedParameter == null) {
           throw new ExecutorException("Property [" + this.property + "] cannot be loaded because "
@@ -192,6 +196,7 @@ public class ResultLoaderMap {
                   + this.mappedStatement + "] is not serializable.");
         }
 
+        // 获取配置
         final Configuration config = this.getConfiguration();
         final MappedStatement ms = config.getMappedStatement(this.mappedStatement);
         if (ms == null) {
@@ -215,7 +220,7 @@ public class ResultLoaderMap {
         this.resultLoader = new ResultLoader(old.configuration, new ClosedExecutor(), old.mappedStatement,
                 old.parameterObject, old.targetType, old.cacheKey, old.boundSql);
       }
-
+      // 执行懒加载并赋值
       this.metaResultObject.setValue(property, this.resultLoader.loadResult());
     }
 

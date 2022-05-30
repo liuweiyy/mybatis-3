@@ -40,14 +40,18 @@ import org.apache.ibatis.session.Configuration;
 
 /**
  * @author Eduardo Macarron
+ * Javassist延迟加载代理工厂
  */
 public class JavassistProxyFactory implements org.apache.ibatis.executor.loader.ProxyFactory {
 
   private static final String FINALIZE_METHOD = "finalize";
+  // 对象在序列化之前会调用writeReplace,writeReplace会返回一个Object，序列化返回之后的Object
+  // 这样可以改变属性，那些属性要序列化，那些属性不要序列化
   private static final String WRITE_REPLACE_METHOD = "writeReplace";
 
   public JavassistProxyFactory() {
     try {
+      // 先检查是否有javassist
       Resources.classForName("javassist.util.proxy.ProxyFactory");
     } catch (Throwable e) {
       throw new IllegalStateException("Cannot enable lazy loading because Javassist is not available. Add Javassist to your classpath.", e);
@@ -56,6 +60,7 @@ public class JavassistProxyFactory implements org.apache.ibatis.executor.loader.
 
   @Override
   public Object createProxy(Object target, ResultLoaderMap lazyLoader, Configuration configuration, ObjectFactory objectFactory, List<Class<?>> constructorArgTypes, List<Object> constructorArgs) {
+    // 创建懒加载对象
     return EnhancedResultObjectProxyImpl.createProxy(target, lazyLoader, configuration, objectFactory, constructorArgTypes, constructorArgs);
   }
 
@@ -140,14 +145,20 @@ public class JavassistProxyFactory implements org.apache.ibatis.executor.loader.
             }
           } else {
             if (lazyLoader.size() > 0 && !FINALIZE_METHOD.equals(methodName)) {
+              // aggressive:是不是调用任意方法就触发全部的懒加载 默认False
+              // "equals", "clone", "hashCode", "toString"方法触发全部的懒加载
               if (aggressive || lazyLoadTriggerMethods.contains(methodName)) {
                 lazyLoader.loadAll();
               } else if (PropertyNamer.isSetter(methodName)) {
+                // 当前属性的set方法
                 final String property = PropertyNamer.methodToProperty(methodName);
+                // 移除当前属性，这样get的时候就不会覆盖原来手动赋的值
                 lazyLoader.remove(property);
               } else if (PropertyNamer.isGetter(methodName)) {
+                // get方法
                 final String property = PropertyNamer.methodToProperty(methodName);
                 if (lazyLoader.hasLoader(property)) {
+                  // 有属性就触发懒加载
                   lazyLoader.load(property);
                 }
               }
