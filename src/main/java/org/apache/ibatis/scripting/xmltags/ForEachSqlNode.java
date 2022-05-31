@@ -71,13 +71,16 @@ public class ForEachSqlNode implements SqlNode {
       return true;
     }
     boolean first = true;
+    // 添加open
     applyOpen(context);
     int i = 0;
+    // 遍历每个值
     for (Object o : iterable) {
       DynamicContext oldContext = context;
       if (first || separator == null) {
         context = new PrefixedContext(context, "");
       } else {
+        // 不是第一个加上逗号
         context = new PrefixedContext(context, separator);
       }
       int uniqueNumber = context.getUniqueNumber();
@@ -91,6 +94,7 @@ public class ForEachSqlNode implements SqlNode {
         applyIndex(context, i, uniqueNumber);
         applyItem(context, o, uniqueNumber);
       }
+      // 执行子节点
       contents.apply(new FilteredDynamicContext(configuration, context, index, item, uniqueNumber));
       if (first) {
         first = !((PrefixedContext) context).isPrefixApplied();
@@ -98,6 +102,7 @@ public class ForEachSqlNode implements SqlNode {
       context = oldContext;
       i++;
     }
+    // 添加close
     applyClose(context);
     context.getBindings().remove(item);
     context.getBindings().remove(index);

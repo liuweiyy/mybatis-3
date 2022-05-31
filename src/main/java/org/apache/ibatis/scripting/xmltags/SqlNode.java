@@ -17,7 +17,9 @@ package org.apache.ibatis.scripting.xmltags;
 
 /**
  * @author Clinton Begin
+ * 解释器模式 抽象语法树AST
  */
-public interface SqlNode {
+public interface
+SqlNode {
   boolean apply(DynamicContext context);
 }

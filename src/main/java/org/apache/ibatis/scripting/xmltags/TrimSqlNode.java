@@ -30,7 +30,9 @@ import org.apache.ibatis.session.Configuration;
 public class TrimSqlNode implements SqlNode {
 
   private final SqlNode contents;
+  // 前缀
   private final String prefix;
+  // 后缀
   private final String suffix;
   private final List<String> prefixesToOverride;
   private final List<String> suffixesToOverride;
@@ -52,7 +54,9 @@ public class TrimSqlNode implements SqlNode {
   @Override
   public boolean apply(DynamicContext context) {
     FilteredDynamicContext filteredDynamicContext = new FilteredDynamicContext(context);
+    // 把内容添加到filteredDynamicContext中
     boolean result = contents.apply(filteredDynamicContext);
+    // 处理前后缀
     filteredDynamicContext.applyAll();
     return result;
   }
@@ -70,6 +74,7 @@ public class TrimSqlNode implements SqlNode {
   }
 
   private class FilteredDynamicContext extends DynamicContext {
+    // 装饰器模式
     private DynamicContext delegate;
     private boolean prefixApplied;
     private boolean suffixApplied;
@@ -87,7 +92,9 @@ public class TrimSqlNode implements SqlNode {
       sqlBuffer = new StringBuilder(sqlBuffer.toString().trim());
       String trimmedUppercaseSql = sqlBuffer.toString().toUpperCase(Locale.ENGLISH);
       if (trimmedUppercaseSql.length() > 0) {
+        // 添加前缀
         applyPrefix(sqlBuffer, trimmedUppercaseSql);
+        // 添加后缀
         applySuffix(sqlBuffer, trimmedUppercaseSql);
       }
       delegate.appendSql(sqlBuffer.toString());
