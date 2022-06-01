@@ -33,6 +33,8 @@ import org.apache.ibatis.session.Configuration;
  *
  * @author Clinton Begin
  */
+// 在执行 sql 时，通过 DefaultParameterHandler.setParameters (PreparedStatement) 方法，
+// 遍历 List<ParameterMapping> parameterMappings = boundSql.getParameterMappings () 来逐一对 sql 中的？号占位符进行赋值操作。
 public class BoundSql {
   // 可以执行的sql语句
   private final String sql;

@@ -65,6 +65,7 @@ public class XMLScriptBuilder extends BaseBuilder {
   }
 
   public SqlSource parseScriptNode() {
+    // 解析SQL 动态SQL
     MixedSqlNode rootSqlNode = parseDynamicTags(context);
     SqlSource sqlSource;
     if (isDynamic) {
@@ -80,9 +81,11 @@ public class XMLScriptBuilder extends BaseBuilder {
     NodeList children = node.getNode().getChildNodes();
     for (int i = 0; i < children.getLength(); i++) {
       XNode child = node.newXNode(children.item(i));
+      // 如果是 普通sql 则走这个case
       // 是否为文本节点
       if (child.getNode().getNodeType() == Node.CDATA_SECTION_NODE || child.getNode().getNodeType() == Node.TEXT_NODE) {
         String data = child.getStringBody("");
+        // 这里会去判断是否包含 ${} 来决定到底是那种和类型
         TextSqlNode textSqlNode = new TextSqlNode(data);
         // 判断是不是表达式文本
         if (textSqlNode.isDynamic()) {
@@ -91,6 +94,7 @@ public class XMLScriptBuilder extends BaseBuilder {
         } else {
           contents.add(new StaticTextSqlNode(data));
         }
+      // 如果是标签，则走这里,也就是动态SQL
       } else if (child.getNode().getNodeType() == Node.ELEMENT_NODE) { // issue #628
         // 元素类型 where、if等
         String nodeName = child.getNode().getNodeName();

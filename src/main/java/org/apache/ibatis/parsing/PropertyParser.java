@@ -21,6 +21,7 @@ import java.util.Properties;
  * @author Clinton Begin
  * @author Kazuki Shimizu
  */
+// 主要是用于解析配置文件中<properties>元素
 public class PropertyParser {
 
   private static final String KEY_PREFIX = "org.apache.ibatis.parsing.PropertyParser.";
@@ -56,6 +57,7 @@ public class PropertyParser {
     return parser.parse(string);
   }
 
+  // 处理 ${xxx} 占位符
   private static class VariableTokenHandler implements TokenHandler {
     private final Properties variables;
     private final boolean enableDefaultValue;

@@ -66,6 +66,7 @@ public class SqlSourceBuilder extends BaseBuilder {
     return builder.toString();
   }
 
+  // 处理 #{xxx} 占位符
   private static class ParameterMappingTokenHandler extends BaseBuilder implements TokenHandler {
 
     private final List<ParameterMapping> parameterMappings = new ArrayList<>();
@@ -84,6 +85,7 @@ public class SqlSourceBuilder extends BaseBuilder {
 
     @Override
     public String handleToken(String content) {
+      // 创建一个ParameterMapping对象，并返回？号占位符
       parameterMappings.add(buildParameterMapping(content));
       return "?";
     }

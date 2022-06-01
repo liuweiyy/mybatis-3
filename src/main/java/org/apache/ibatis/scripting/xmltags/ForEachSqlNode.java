@@ -27,14 +27,22 @@ import org.apache.ibatis.session.Configuration;
 public class ForEachSqlNode implements SqlNode {
   public static final String ITEM_PREFIX = "__frch_";
 
+  // 判断循环的终止条件
   private final ExpressionEvaluator evaluator;
+  // 循环的集合
   private final String collectionExpression;
   private final Boolean nullable;
+  // 子节点
   private final SqlNode contents;
+  // 开始字符
   private final String open;
+  // 结束字符
   private final String close;
+  // 分隔符
   private final String separator;
+  // 本次循环的元素，如果集合为 map，则index 为key，item为value
   private final String item;
+  // 本次循环的次数
   private final String index;
   private final Configuration configuration;
 
@@ -65,6 +73,7 @@ public class ForEachSqlNode implements SqlNode {
   @Override
   public boolean apply(DynamicContext context) {
     Map<String, Object> bindings = context.getBindings();
+    // 得到配置collection参数集合的迭代器
     final Iterable<?> iterable = evaluator.evaluateIterable(collectionExpression, bindings,
       Optional.ofNullable(nullable).orElseGet(configuration::isNullableOnForEach));
     if (iterable == null || !iterable.iterator().hasNext()) {
@@ -78,19 +87,23 @@ public class ForEachSqlNode implements SqlNode {
     for (Object o : iterable) {
       DynamicContext oldContext = context;
       if (first || separator == null) {
+        // 如果是集合的第一项，则前缀prefix为空字符串
         context = new PrefixedContext(context, "");
       } else {
-        // 不是第一个加上逗号
+        // 如果分隔符不为空，则指定分隔符
         context = new PrefixedContext(context, separator);
       }
       int uniqueNumber = context.getUniqueNumber();
+      // 把遍历出来的值存储到map中
       // Issue #709
       if (o instanceof Map.Entry) {
+        // 如果集合是map类型，则将集合中的key和value添加到bindings参数集合中保存
         @SuppressWarnings("unchecked")
         Map.Entry<Object, Object> mapEntry = (Map.Entry<Object, Object>) o;
         applyIndex(context, mapEntry.getKey(), uniqueNumber);
         applyItem(context, mapEntry.getValue(), uniqueNumber);
       } else {
+        // 不是map类型，则将集合中元素的索引和元素添加到 bindings集合中
         applyIndex(context, i, uniqueNumber);
         applyItem(context, o, uniqueNumber);
       }
@@ -104,6 +117,7 @@ public class ForEachSqlNode implements SqlNode {
     }
     // 添加close
     applyClose(context);
+    // 清空绑定的集合属性
     context.getBindings().remove(item);
     context.getBindings().remove(index);
     return true;
@@ -139,10 +153,14 @@ public class ForEachSqlNode implements SqlNode {
     return ITEM_PREFIX + item + "_" + i;
   }
 
+  // FilteredDynamicContext 是用来处理 #{} 占位符的，但是并未绑定参数，只是把 #{item} 转换为 #{_frch_item_1} 之类的占位符。
   private static class FilteredDynamicContext extends DynamicContext {
     private final DynamicContext delegate;
+    // 对应集合项在集合的索引位置
     private final int index;
+    // item的索引
     private final String itemIndex;
+    // item的值
     private final String item;
 
     public FilteredDynamicContext(Configuration configuration,DynamicContext delegate, String itemIndex, String item, int i) {
@@ -171,10 +189,13 @@ public class ForEachSqlNode implements SqlNode {
     @Override
     public void appendSql(String sql) {
       GenericTokenParser parser = new GenericTokenParser("#{", "}", content -> {
+        // 把 #{item} 转换为 #{__frch_item_1} 之类的
         String newContent = content.replaceFirst("^\\s*" + item + "(?![^.,:\\s])", itemizeItem(item, index));
+        // 把 #{itmIndex} 转换为 #{__frch_itemIndex_1} 之类的
         if (itemIndex != null && newContent.equals(content)) {
           newContent = content.replaceFirst("^\\s*" + itemIndex + "(?![^.,:\\s])", itemizeItem(itemIndex, index));
         }
+        // 再返回 #{__frch_item_1} 或 #{__frch_itemIndex_1}
         return "#{" + newContent + "}";
       });
 
@@ -191,7 +212,9 @@ public class ForEachSqlNode implements SqlNode {
 
   private class PrefixedContext extends DynamicContext {
     private final DynamicContext delegate;
+    // 指定的前缀
     private final String prefix;
+    // 是否处理过前缀
     private boolean prefixApplied;
 
     public PrefixedContext(DynamicContext delegate, String prefix) {
@@ -217,10 +240,12 @@ public class ForEachSqlNode implements SqlNode {
 
     @Override
     public void appendSql(String sql) {
+      // 如果还没有处理前缀，则添加前缀
       if (!prefixApplied && sql != null && sql.trim().length() > 0) {
         delegate.appendSql(prefix);
         prefixApplied = true;
       }
+      // 拼接SQL
       delegate.appendSql(sql);
     }
 
